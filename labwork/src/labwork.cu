@@ -106,7 +106,6 @@ void Labwork::labwork1_CPU() {
         }
     }
 }
-
 void Labwork::labwork1_OpenMP() {
     int pixelCount = inputImage->width * inputImage->height;
     outputImage = static_cast<char *>(malloc(pixelCount * 3));
@@ -118,6 +117,7 @@ void Labwork::labwork1_OpenMP() {
             	                        (int) inputImage->buffer[i * 3 + 2]) / 3);
             outputImage[i * 3 + 1] = outputImage[i * 3];
             outputImage[i * 3 + 2] = outputImage[i * 3];
+            // if(outputImage[i*3] < 0) printf("get negative ! \n");
         }
     }
 }
@@ -165,19 +165,34 @@ void Labwork::labwork2_GPU() {
     }
 
 }
+__global__ void grayscale(uchar3* input, uchar3* output){
+	int tid = threadIdx.x + blockIdx.x * blockDim.x;
+	output[tid].x = (input[tid].x + input[tid].y + input[tid].z) / 3;
+	output[tid].z = output[tid].y = output[tid].x;
+}
 
 void Labwork::labwork3_GPU() {
     // Calculate number of pixels
-
+    int pixelCount = inputImage->width * inputImage->height;
+    // Allocate host output memory
+    outputImage = static_cast<char *>(malloc(pixelCount * 3));
     // Allocate CUDA memory    
-
+    uchar3* dev_input;
+    uchar3* dev_output;
+    cudaMalloc(&dev_input, pixelCount * sizeof(uchar3));
+    cudaMalloc(&dev_output, pixelCount * sizeof(uchar3));
     // Copy CUDA Memory from CPU to GPU
-
+    cudaMemcpy(dev_input, inputImage->buffer, pixelCount * sizeof(uchar3), cudaMemcpyHostToDevice);
+    // Define blockSize and numBlock
+    int blockSize = 64;
+    int numBlock = pixelCount / blockSize;
     // Processing
-
+    grayscale<<<numBlock, blockSize>>>(dev_input, dev_output);
     // Copy CUDA Memory from GPU to CPU
-
+    cudaMemcpy(outputImage, dev_output, pixelCount * sizeof(uchar3), cudaMemcpyDeviceToHost);
     // Cleaning
+    cudaFree(dev_input);
+    cudaFree(dev_output);
 }
 
 void Labwork::labwork4_GPU() {
