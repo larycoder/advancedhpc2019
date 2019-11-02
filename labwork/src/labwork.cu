@@ -196,10 +196,11 @@ void Labwork::labwork3_GPU() {
     cudaFree(dev_output);
 }
 
-__global__ void grayscaleVer2D(uchar3* input, uchar3* output, int width){
+__global__ void grayscaleVer2D(uchar3* input, uchar3* output, int width, int height){
 	int tid_x = threadIdx.x + blockIdx.x * blockDim.x;
 	int tid_y = threadIdx.y + blockIdx.y * blockDim.y;
-	int tid = tid_x + tid_y * width;
+	if(tid_x > width || tid_y > height) return;
+	int tid = (int)(tid_x + tid_y * width);
 	output[tid].x = (input[tid].x + input[tid].y + input[tid].z) / 3;
 	output[tid].z = output[tid].y = output[tid].x;
 }
@@ -215,13 +216,12 @@ void Labwork::labwork4_GPU() {
 	// set value for block and grid
 	int b_x = 32;
 	int b_y = 32;
-	int numBlock = (int)(pixelCount / (b_x * b_y));
-	int d_x = 10;
-	int d_y = 400;
+	int d_x = (int)(inputImage->width / b_x);
+	int d_y = (int)(inputImage->height / b_y);
 	// execute processing
 	dim3 blockSize = dim3(b_x, b_y);
 	dim3 gridSize = dim3(d_x, d_y);
-	grayscaleVer2D<<<gridSize, blockSize>>>(dev_input, dev_output, b_x * d_x);
+	grayscaleVer2D<<<gridSize, blockSize>>>(dev_input, dev_output, inputImage->width, inputImage->height);
 	cudaMemcpy(outputImage, dev_output, pixelCount * sizeof(uchar3), cudaMemcpyDeviceToHost);
 	cudaFree(dev_input);
 	cudaFree(dev_output);
