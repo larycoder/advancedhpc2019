@@ -270,17 +270,19 @@ int Convolution(char* inputImage, int index, int* kernel_convert, int Size){
 			int temp_index = newIndex + j*3 + i*7*3;
 			int indent;
 			if(temp_index >= 0 && temp_index < (Size*3))
-				indent = (int)inputImage[temp_index];
+				indent = inputImage[temp_index];
 			else indent = 0;
 			count += (indent * kernel_convert[j + i*7]);
 		}
 	}
+
 	return count;
 }
 
 void Labwork::labwork5_CPU() {
 	int pixelCount = inputImage->width * inputImage->height;
 	outputImage = static_cast<char*>(malloc(pixelCount * 3));
+	int* out = static_cast<int*>(malloc(sizeof(int)*pixelCount * 3));
 	// convert of kernel
 	int kernel[49] = {
 				0, 0, 1, 2, 1, 0, 0,
@@ -291,12 +293,21 @@ void Labwork::labwork5_CPU() {
 				0, 3, 13, 22, 13, 3, 0,
 				0, 0, 1, 2, 1, 0, 0
 			   };
-	// for (int i = 0; i < 49; i++) kernel[i] = 1;
 	int kernel_convert[49];
 	for (int i = 0; i < 49; i++) kernel_convert[48 - i] = kernel[i];
 	// execute processing
-	for(int i = 0; i < pixelCount*3; i++){
-		outputImage[i] = (char)Convolution(inputImage->buffer, i, kernel_convert, pixelCount);
+	for(int i = 0; i < pixelCount * 3; i++){
+		out[i] = (int)Convolution(inputImage->buffer, i, kernel_convert, pixelCount);
+	}
+	// rescale indent
+	int max = 0, min = out[0];
+	for (int i = 0; i < (pixelCount * 3); i++){
+		if (out[i] > max) max = out[i];
+		if (out[i] < min) min = out[i];
+	}
+	// push to output
+	for (int i = 0; i < (pixelCount * 3); i++){
+		outputImage[i] = (int)(255 * out[i] / (max - min));
 	}
 }
 
