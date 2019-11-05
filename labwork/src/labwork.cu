@@ -236,7 +236,7 @@ __global__ void blur_convol2D (uchar3* dev_input, uchar3* dev_output, int width,
 	//__shared__ char shared_image[];
 	//shared_image[tid] = input[tid];
 	//__syncthreads();
-
+	
 }
 
 void Labwork::labwork5_GPU() {
@@ -262,7 +262,42 @@ void Labwork::labwork5_GPU() {
 	cudaFree(dev_output);
 }
 
+int Convolution(char* inputImage, int index, int* kernel_convert, int Size){
+	int newIndex = index - 3*3 -3*7*3;
+	int count = 0;
+	for (int i = 0; i < 7; i++){
+		for (int j = 0; j < 7; j++){
+			int temp_index = newIndex + j*3 + i*7*3;
+			int indent;
+			if(temp_index >= 0 && temp_index < (Size*3))
+				indent = (int)inputImage[temp_index];
+			else indent = 0;
+			count += (indent * kernel_convert[j + i*7]);
+		}
+	}
+	return count;
+}
+
 void Labwork::labwork5_CPU() {
+	int pixelCount = inputImage->width * inputImage->height;
+	outputImage = static_cast<char*>(malloc(pixelCount * 3));
+	// convert of kernel
+	int kernel[49] = {
+				0, 0, 1, 2, 1, 0, 0,
+				0, 3, 13, 22, 13, 3, 0,
+				1, 13, 59, 97, 59, 13, 1,
+				2, 22, 97, 159, 97, 22, 2,
+				1, 13, 59, 97, 59, 13, 1,
+				0, 3, 13, 22, 13, 3, 0,
+				0, 0, 1, 2, 1, 0, 0
+			   };
+	// for (int i = 0; i < 49; i++) kernel[i] = 1;
+	int kernel_convert[49];
+	for (int i = 0; i < 49; i++) kernel_convert[48 - i] = kernel[i];
+	// execute processing
+	for(int i = 0; i < pixelCount*3; i++){
+		outputImage[i] = (char)Convolution(inputImage->buffer, i, kernel_convert, pixelCount);
+	}
 }
 
 void Labwork::labwork6_GPU() {
