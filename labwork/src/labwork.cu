@@ -216,8 +216,8 @@ void Labwork::labwork4_GPU() {
 	// set value for block and grid
 	int b_x = 32;
 	int b_y = 32;
-	int d_x = (int)(inputImage->width / b_x) + 1;
-	int d_y = (int)(inputImage->height / b_y) + 1;
+	int d_x = (int)(inputImage->width / b_x) + (inputImage->width % b_x == 0?0:1);
+	int d_y = (int)(inputImage->height / b_y) + (inputImage->height % b_y == 0?0:1);
 	// execute processing
 	dim3 blockSize = dim3(b_x, b_y);
 	dim3 gridSize = dim3(d_x, d_y);
@@ -227,10 +227,42 @@ void Labwork::labwork4_GPU() {
 	cudaFree(dev_output);
 }
 
-void Labwork::labwork5_CPU() {
+
+__global__ void blur_convol2D (uchar3* dev_input, uchar3* dev_output, int width, int height){
+	//int tid_x = threadIdx.x + blockIdx.x * blockDim.x;
+	//int tid_y = threadIdx.y + blockIdx.y * blockDim.y;
+	//int tid_z = threadIdx.z + blockIdx.z * blockDim.z;
+	//if (tid_x > width || tid_y > height) return;
+	//__shared__ char shared_image[];
+	//shared_image[tid] = input[tid];
+	//__syncthreads();
+
 }
 
 void Labwork::labwork5_GPU() {
+
+	int pixelCount = inputImage->width * inputImage->height;
+	outputImage = static_cast<char*>(malloc(pixelCount * 3));
+	uchar3* dev_input;
+        uchar3*	dev_output;
+	cudaMalloc(&dev_input, pixelCount * sizeof(uchar3));
+	cudaMalloc(&dev_output, pixelCount * sizeof(uchar3));
+	cudaMemcpy(dev_input, inputImage->buffer, pixelCount * sizeof(uchar3), cudaMemcpyHostToDevice);
+	// set value for block and grid
+	int b_x = 32;
+	int b_y = 32;
+	int d_x = (int)(inputImage->width / b_x) + 1;
+	int d_y = (int)(inputImage->height / b_y) + 1;
+	// execute processing
+	dim3 blockSize = dim3(b_x, b_y);
+	dim3 gridSize = dim3(d_x, d_y);
+	blur_convol2D<<<gridSize, blockSize>>>(dev_input, dev_output, inputImage->width, inputImage->height);
+	cudaMemcpy(outputImage, dev_output, pixelCount * sizeof(uchar3), cudaMemcpyDeviceToHost);
+	cudaFree(dev_input);
+	cudaFree(dev_output);
+}
+
+void Labwork::labwork5_CPU() {
 }
 
 void Labwork::labwork6_GPU() {
